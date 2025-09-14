@@ -78,7 +78,9 @@ def run_and_display_simulation(
         summary_title,
         summary_text,
         fig,
-        df
+        df,
+        gr.update(open=True),
+        gr.update(open=True)
     )
 
 def get_gemini_analysis(
@@ -94,7 +96,7 @@ def get_gemini_analysis(
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-pro')
         
-        system_prompt = "You are a helpful financial analyst assistant. Your role is to provide a clear, concise, and neutral interpretation of Monte Carlo simulation results for a retirement plan. Do not give financial advice. Do not use overly optimistic or pessimistic language. Stick to interpreting the data provided. Start your analysis with a one-sentence summary of the outcome. Then, explain the key factors influencing the result. Structure your response in two paragraphs."
+        system_prompt = "You are a helpful financial analyst assistant. Your role is to provide a clear, concise, and neutral interpretation of Monte Carlo simulation results for a retirement plan. Do not give financial advice. Do not use overly optimistic or pessimistic language. Stick to interpreting the data provided. Start your analysis with a one-sentence summary of the outcome. Then, explain the key factors influencing the result. If nesseoary, you will suggest to derisk brankrupt eariler than 10 years. Structure your response in no longer than 6 paragraphs."
         
         input_summary = f"""
         **Initial Financial Situation:**
@@ -117,7 +119,7 @@ def get_gemini_analysis(
         simulation_logic = """
         **Simulation Logic Overview:**
         The simulation models a retirement strategy over 10 years, month by month.
-        - **Monthly Cycle:** The portfolio grows or shrinks based on random market returns. Dividends are paid quarterly and reduce the margin loan. Monthly spending is covered by borrowing on stock margin. Interest accrues on the loan. If the loan exceeds the margin limit, assets are sold to deleverage.
+        - **Monthly Cycle:** The portfolio grows or shrinks based on random market returns. Dividends are paid quarterly and reduce the margin loan. Monthly spending is covered by borrowing on margin. Interest accrues on the loan. If the loan exceeds the margin limit, assets are sold to deleverage.
         - **Annual Cycle:** At year-end, a tax-gain harvesting strategy is executed. It sells assets to realize gains up to the federal tax-free limit, then immediately repurchases them to step-up the cost basis. California state tax is calculated on the net investment income (dividends + gains - margin interest) and the tax bill is added to the margin loan balance for the new year.
         """
 
@@ -280,10 +282,10 @@ with gr.Blocks(
              summary_title_output = gr.Markdown()
              summary_text_output = gr.Markdown()
         plot_output = gr.Plot()
-        with gr.Accordion("View Monthly Data", open=False):
+        with gr.Accordion("View Monthly Data", open=False) as monthly_data_accordion:
             dataframe_output = gr.Dataframe(headers=["Month", "Min Net Worth", "Avg Net Worth", "Max Net Worth"], datatype=["number", "str", "str", "str"])
 
-        with gr.Accordion("Get Gemini Analysis", open=False):
+        with gr.Accordion("Get Gemini Analysis", open=False) as gemini_analysis_accordion:
             gemini_key = gr.Textbox(label="Enter your Gemini API Key", type="password")
             analyze_button = gr.Button("Analyze Results")
             gemini_analysis_output = gr.Markdown()
@@ -308,7 +310,9 @@ with gr.Blocks(
             summary_title_output,
             summary_text_output,
             plot_output,
-            dataframe_output
+            dataframe_output,
+            monthly_data_accordion,
+            gemini_analysis_accordion
         ]
     ).then(
         fn=update_summary_style,
