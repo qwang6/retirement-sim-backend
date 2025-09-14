@@ -4,9 +4,20 @@ This project is a Python-based Monte Carlo simulation model to assess the viabil
 
 ## Project Overview
 
-The simulation models a retirement strategy where an individual with a $1M stock portfolio plans to live by borrowing on margin against it, rather than selling shares for income. The model simulates the interaction between portfolio growth, living expenses, margin loan interest, quarterly dividends, and an annual tax-gain harvesting strategy.
+The simulation models a retirement strategy where an individual with a $1M stock portfolio plans to live by borrowing on margin against it, rather than selling shares for income. The model runs thousands of scenarios over a 10-year period to assess the viability of this approach.
 
-The final output shows the monthly range of potential net worth (maximum, average, and minimum) across thousands of simulated market scenarios, helping to quantify the risk and potential success of this strategy.
+Each simulation month includes several key financial events:
+- **Portfolio Growth:** The portfolio's value changes based on a randomized monthly return generated from user-defined average return and standard deviation.
+- **Dividend Payouts:** Every quarter, dividends are paid out and used to reduce the margin loan balance.
+- **Expense Funding:** Monthly living expenses are covered first by any passive income, with the remainder funded by increasing the margin loan.
+- **Margin Interest:** Interest accrues monthly on the margin loan balance based on a randomized annual rate.
+- **Risk Management:** If the margin loan exceeds a specified percentage of the portfolio's value, a forced sale of assets occurs to bring the loan back to the limit.
+
+At the end of each year, the model executes a tax strategy involving:
+- **Tax-Gain Harvesting:** Selling and immediately repurchasing assets to realize long-term capital gains up to the federal tax-free limit, thereby "stepping up" the cost basis.
+- **State Tax Calculation:** Calculating and paying California state taxes on net investment income, with the tax bill being added to the margin loan.
+
+The final output shows the monthly range of potential net worth (maximum, average, and minimum) across all simulated scenarios, helping to quantify the risk and potential success of this strategy.
 
 ## Getting Started
 
@@ -65,3 +76,9 @@ The script will output a results table to the console and display a plot visuali
 -   `README.md`: This file.
 -   `ref/project_idea.md`: The project plan and requirements specification.
 -   `ref/info.html`: An HTML file with a UI for the simulation.
+
+## Screenshot
+
+Here is a screenshot of the interactive web interface:
+
+![Simulation Results](ref/sim-results.png)
