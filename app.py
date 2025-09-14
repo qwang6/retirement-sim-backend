@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from simulation import run_simulation
 import google.generativeai as genai
 
+
 def run_and_display_simulation(
     initial_portfolio_value, initial_cost_basis, annual_spending,
     annual_return, annual_std_dev, margin_rate, margin_rate_std_dev,
@@ -49,18 +50,22 @@ def run_and_display_simulation(
     # --- Create Plot ---
     fig, ax = plt.subplots(figsize=(10, 6))
     months = range(1, len(results['avg_net_worth']) + 1)
-    ax.plot(months, results['max_net_worth'], label='Max Net Worth', color='#ffa600')
-    ax.plot(months, results['avg_net_worth'], label='Average Net Worth', color='#003f5c', linewidth=2)
-    ax.plot(months, results['min_net_worth'], label='Min Net Worth', color='#ff6361')
-    ax.fill_between(months, results['min_net_worth'], results['max_net_worth'], color='gray', alpha=0.1)
+    ax.plot(months, results['max_net_worth'],
+            label='Max Net Worth', color='#ffa600')
+    ax.plot(months, results['avg_net_worth'],
+            label='Average Net Worth', color='#003f5c', linewidth=2)
+    ax.plot(months, results['min_net_worth'],
+            label='Min Net Worth', color='#ff6361')
+    ax.fill_between(months, results['min_net_worth'],
+                    results['max_net_worth'], color='gray', alpha=0.1)
     ax.set_title('Simulated Net Worth Over 10 Years', fontsize=16)
     ax.set_xlabel('Month')
     ax.set_ylabel('Net Worth ($)')
     ax.legend()
     ax.grid(True, linestyle='--', alpha=0.6)
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x/1000:,.0f}k'))
+    ax.yaxis.set_major_formatter(
+        plt.FuncFormatter(lambda x, p: f'${x/1000:,.0f}k'))
     plt.tight_layout()
-
 
     # --- Create DataFrame ---
     df = pd.DataFrame({
@@ -83,6 +88,7 @@ def run_and_display_simulation(
         gr.update(open=True)
     )
 
+
 def get_gemini_analysis(
     api_key, summary_text, df,
     initial_portfolio_value, initial_cost_basis, annual_spending,
@@ -95,9 +101,23 @@ def get_gemini_analysis(
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-pro')
-        
-        system_prompt = "You are a helpful financial analyst assistant. Your role is to provide a clear, concise, and neutral interpretation of Monte Carlo simulation results for a retirement plan. Do not give financial advice. Do not use overly optimistic or pessimistic language. Stick to interpreting the data provided. Start your analysis with a one-sentence summary of the outcome. Then, explain the key factors influencing the result. If nesseoary, you will suggest how to derisk brankrupt eariler than 10 years, like reserve some cash eariler. Structure your response in no longer than 6 paragraphs."
-        
+
+        system_prompt = '''
+        You are a helpful financial analyst assistant. Your role is to provide a clear, concise, and neutral interpretation of Monte Carlo simulation results for a retirement plan.
+
+        Your primary duty is data interpretation. You must not give prescriptive financial advice or use forceful commands (e.g., "you must," "you should"). Your language must remain objective.
+
+        Structure your response as follows:
+
+        One-Sentence Summary: Begin with a single summary sentence describing the primary outcome of the simulation (e.g., the statistical probability of the plan succeeding).
+
+        Key Factors: Explain the key variables within the simulation (such as market volatility or withdrawal rate) that most significantly influence this outcome.
+
+        Risk Analysis & Mitigation Strategies: If the simulation indicates a high risk of failure, first identify the primary statistical drivers causing it. After identifying the cause, neutrally present common strategies and variable adjustments used to mitigate such risks. For each strategy (e.g., "reducing withdrawals," "securing a cash buffer," or "adjusting asset allocation"), briefly explain the potential tradeoffs or impact it would have on the plan according to financial principles.
+
+        Length: Keep the entire response to no longer than six paragraphs.
+        '''
+
         input_summary = f"""
         **Initial Financial Situation:**
         - Initial Portfolio Value: ${initial_portfolio_value:,.2f}
@@ -136,9 +156,9 @@ def get_gemini_analysis(
         **Detailed Monthly Data:**
         {df.to_string()}
         """
-        
+
         prompt = f"{system_prompt}\n\n{user_query}"
-        
+
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
@@ -176,20 +196,31 @@ with gr.Blocks(
     with gr.Accordion("Step 1: The Starting Point - Your Financial DNA", open=True):
         gr.Markdown("<p style='text-align: center; font-size: 1.1rem; font-family: Inter, sans-serif;'>The simulation begins with your unique parameters. Change any value below and run the simulation to see how it impacts your 10-year outlook.</p>")
         with gr.Row():
-            initial_portfolio_value = gr.Number(value=1000000, label="PORTFOLIO VALUE ($)", elem_classes="input-card", info="The starting value of your investment portfolio.")
-            initial_cost_basis = gr.Number(value=700000, label="COST BASIS ($)", elem_classes="input-card", info="The original value of your assets for tax purposes.")
-            annual_spending = gr.Number(value=120000, label="ANNUAL SPENDING ($)", elem_classes="input-card", info="The total amount of money you plan to spend annually.")
+            initial_portfolio_value = gr.Number(value=1000000, label="PORTFOLIO VALUE ($)",
+                                                elem_classes="input-card", info="The starting value of your investment portfolio.")
+            initial_cost_basis = gr.Number(value=700000, label="COST BASIS ($)", elem_classes="input-card",
+                                           info="The original value of your assets for tax purposes.")
+            annual_spending = gr.Number(value=120000, label="ANNUAL SPENDING ($)", elem_classes="input-card",
+                                        info="The total amount of money you plan to spend annually.")
         with gr.Row():
-            annual_return = gr.Number(value=10, label="AVG. ANNUAL RETURN (%)", elem_classes="input-card", info="The expected average annual return of your portfolio.")
-            annual_std_dev = gr.Number(value=19, label="ANNUAL STD. DEV. (%)", elem_classes="input-card", info="The annualized standard deviation of your portfolio's returns (volatility).")
-            margin_rate = gr.Number(value=6, label="AVG. MARGIN RATE (%)", elem_classes="input-card", info="The average annual interest rate on your margin loan.")
+            annual_return = gr.Number(value=10, label="AVG. ANNUAL RETURN (%)", elem_classes="input-card",
+                                      info="The expected average annual return of your portfolio.")
+            annual_std_dev = gr.Number(value=19, label="ANNUAL STD. DEV. (%)", elem_classes="input-card",
+                                       info="The annualized standard deviation of your portfolio's returns (volatility).")
+            margin_rate = gr.Number(value=6, label="AVG. MARGIN RATE (%)", elem_classes="input-card",
+                                    info="The average annual interest rate on your margin loan.")
         with gr.Row():
-            margin_rate_std_dev = gr.Number(value=1.5, label="MARGIN STD. DEV. (%)", elem_classes="input-card", info="The standard deviation of the margin loan interest rate.")
-            margin_limit = gr.Number(value=50, label="MARGIN BORROW LIMIT (%)", elem_classes="input-card", info="The maximum percentage of your portfolio you are willing to borrow on margin.")
-            simulation_count = gr.Number(value=1000, label="# OF SIMULATIONS", elem_classes="input-card", info="The number of different market scenarios to simulate.")
+            margin_rate_std_dev = gr.Number(value=1.5, label="MARGIN STD. DEV. (%)", elem_classes="input-card",
+                                            info="The standard deviation of the margin loan interest rate.")
+            margin_limit = gr.Number(value=50, label="MARGIN BORROW LIMIT (%)", elem_classes="input-card",
+                                     info="The maximum percentage of your portfolio you are willing to borrow on margin.")
+            simulation_count = gr.Number(value=1000, label="# OF SIMULATIONS", elem_classes="input-card",
+                                         info="The number of different market scenarios to simulate.")
         with gr.Row():
-            tax_harvesting_profit_threshold = gr.Number(value=30, label="TAX HARVEST PROFIT THRESHOLD (%)", elem_classes="input-card", info="The unrealized profit percentage that triggers tax-gain harvesting.")
-        run_button = gr.Button("Run Simulation", variant="primary", scale=1, elem_id="run_button")
+            tax_harvesting_profit_threshold = gr.Number(value=30, label="TAX HARVEST PROFIT THRESHOLD (%)",
+                                                        elem_classes="input-card", info="The unrealized profit percentage that triggers tax-gain harvesting.")
+        run_button = gr.Button(
+            "Run Simulation", variant="primary", scale=1, elem_id="run_button")
 
     with gr.Accordion("Step 2 & 3: The Monthly Cycle & Annual Reset", open=False):
         gr.Markdown(
@@ -271,7 +302,7 @@ with gr.Blocks(
 
     with gr.Group(visible=False) as results_box:
         gr.Markdown(
-        """
+            """
         <div style=\"text-align: center; font-family: 'Inter', sans-serif;">
             <h2 style=\"font-size: 2rem; font-weight: 700; color: #58508d;">4. The Final Verdict: Your Simulated Future</h2>
             <p style=\"font-size: 1.1rem; color: #555;">After running the simulations, the results below show the range of possibilities for your net worth.</p>
@@ -279,17 +310,18 @@ with gr.Blocks(
         """
         )
         with gr.Group() as summary_card:
-             summary_title_output = gr.Markdown()
-             summary_text_output = gr.Markdown()
+            summary_title_output = gr.Markdown()
+            summary_text_output = gr.Markdown()
         plot_output = gr.Plot()
         with gr.Accordion("View Monthly Data", open=False) as monthly_data_accordion:
-            dataframe_output = gr.Dataframe(headers=["Month", "Min Net Worth", "Avg Net Worth", "Max Net Worth"], datatype=["number", "str", "str", "str"])
+            dataframe_output = gr.Dataframe(headers=["Month", "Min Net Worth", "Avg Net Worth", "Max Net Worth"], datatype=[
+                                            "number", "str", "str", "str"])
 
         with gr.Accordion("Get Gemini Analysis", open=False) as gemini_analysis_accordion:
-            gemini_key = gr.Textbox(label="Enter your Gemini API Key", type="password")
+            gemini_key = gr.Textbox(
+                label="Enter your Gemini API Key", type="password")
             analyze_button = gr.Button("Analyze Results")
             gemini_analysis_output = gr.Markdown()
-
 
     def update_summary_style(summary_title):
         if "Survived" in summary_title:
