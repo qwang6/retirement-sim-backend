@@ -129,6 +129,8 @@ with gr.Blocks(
             margin_rate_std_dev = gr.Number(value=1.5, label="MARGIN STD. DEV. (%)", elem_classes="input-card")
             margin_limit = gr.Number(value=50, label="MARGIN BORROW LIMIT (%)", elem_classes="input-card")
             simulation_count = gr.Number(value=1000, label="# OF SIMULATIONS", elem_classes="input-card")
+        with gr.Row():
+            tax_harvesting_profit_threshold = gr.Number(value=30, label="TAX HARVEST PROFIT THRESHOLD (%)", elem_classes="input-card")
         run_button = gr.Button("Run Simulation", variant="primary", scale=1, elem_id="run_button")
 
     with gr.Accordion("Step 2 & 3: The Monthly Cycle & Annual Reset", open=False):
@@ -238,7 +240,7 @@ with gr.Blocks(
         inputs=[
             initial_portfolio_value, initial_cost_basis, annual_spending,
             annual_return, annual_std_dev, margin_rate, margin_rate_std_dev,
-            margin_limit, simulation_count
+            margin_limit, simulation_count, tax_harvesting_profit_threshold
         ],
         outputs=[
             results_box,
