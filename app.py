@@ -96,7 +96,7 @@ def get_gemini_analysis(
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-pro')
         
-        system_prompt = "You are a helpful financial analyst assistant. Your role is to provide a clear, concise, and neutral interpretation of Monte Carlo simulation results for a retirement plan. Do not give financial advice. Do not use overly optimistic or pessimistic language. Stick to interpreting the data provided. Start your analysis with a one-sentence summary of the outcome. Then, explain the key factors influencing the result. If nesseoary, you will suggest to derisk brankrupt eariler than 10 years. Structure your response in no longer than 6 paragraphs."
+        system_prompt = "You are a helpful financial analyst assistant. Your role is to provide a clear, concise, and neutral interpretation of Monte Carlo simulation results for a retirement plan. Do not give financial advice. Do not use overly optimistic or pessimistic language. Stick to interpreting the data provided. Start your analysis with a one-sentence summary of the outcome. Then, explain the key factors influencing the result. If nesseoary, you will suggest how to derisk brankrupt eariler than 10 years, like reserve some cash eariler. Structure your response in no longer than 6 paragraphs."
         
         input_summary = f"""
         **Initial Financial Situation:**
@@ -153,7 +153,7 @@ with gr.Blocks(
         .step-card {padding: 1.5rem; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid; margin-bottom: 1rem;}
         .step-card-1 {border-color: #4B8BBE;}
         .step-card-2 {border-color: #F0A07B;}
-        .step-card-3 {border-color: #E57373;}
+        .step-card-3 {border-color: #E57333;}
         .step-card-title {font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 0.5rem; background-color: rgba(0,0,0,0.05); padding: 0.25rem 0.5rem; border-radius: 0.25rem; display: inline-block;}
         .step-card-desc {font-size: 1rem; color: #555;}
         .arrow-down {text-align: center; font-size: 2rem; color: #ccc; margin: -0.5rem 0;}
@@ -313,7 +313,8 @@ with gr.Blocks(
             dataframe_output,
             monthly_data_accordion,
             gemini_analysis_accordion
-        ]
+        ],
+        show_progress='full'
     ).then(
         fn=update_summary_style,
         inputs=summary_title_output,
@@ -328,7 +329,8 @@ with gr.Blocks(
             annual_return, annual_std_dev, margin_rate, margin_rate_std_dev,
             margin_limit, simulation_count, tax_harvesting_profit_threshold
         ],
-        outputs=[gemini_analysis_output]
+        outputs=[gemini_analysis_output],
+        show_progress='full'
     )
 
 if __name__ == "__main__":
