@@ -82,3 +82,7 @@ The script will output a results table to the console and display a plot visuali
 Here is a screenshot of the interactive web interface:
 
 ![Simulation Results](ref/sim-results.png)
+
+Here is a screenshot of the Gemini analysis:
+
+![Gemini Analysis](ref/gemini-anaylis.png)
