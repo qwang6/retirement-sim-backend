@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from simulation import run_simulation
+import google.generativeai as genai
 
 def run_and_display_simulation(
     initial_portfolio_value, initial_cost_basis, annual_spending,
@@ -79,6 +80,33 @@ def run_and_display_simulation(
         fig,
         df
     )
+
+def get_gemini_analysis(api_key, summary_text, df):
+    """
+    Analyzes the simulation results using the Gemini Pro API.
+    """
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-pro')
+        
+        system_prompt = "You are a helpful financial analyst assistant. Your role is to provide a clear, concise, and neutral interpretation of Monte Carlo simulation results for a retirement plan. Do not give financial advice. Do not use overly optimistic or pessimistic language. Stick to interpreting the data provided. Start your analysis with a one-sentence summary of the outcome. Then, explain the key factors influencing the result. Structure your response in two paragraphs."
+        
+        user_query = f"""
+        Here are the results of a 10-year retirement simulation. Please provide a brief analysis.
+
+        **Summary:**
+        {summary_text}
+
+        **Monthly Data:**
+        {df.to_string()}
+        """
+        
+        prompt = f"{system_prompt}\n\n{user_query}"
+        
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"An error occurred: {e}"
 
 
 # --- Gradio UI ---
@@ -221,6 +249,11 @@ with gr.Blocks(
         with gr.Accordion("View Monthly Data", open=False):
             dataframe_output = gr.Dataframe(headers=["Month", "Min Net Worth", "Avg Net Worth", "Max Net Worth"], datatype=["number", "str", "str", "str"])
 
+        with gr.Accordion("Get Gemini Analysis", open=False):
+            gemini_key = gr.Textbox(label="Enter your Gemini API Key", type="password")
+            analyze_button = gr.Button("Analyze Results")
+            gemini_analysis_output = gr.Markdown()
+
 
     def update_summary_style(summary_title):
         if "Survived" in summary_title:
@@ -247,6 +280,12 @@ with gr.Blocks(
         fn=update_summary_style,
         inputs=summary_title_output,
         outputs=summary_card
+    )
+
+    analyze_button.click(
+        fn=get_gemini_analysis,
+        inputs=[gemini_key, summary_text_output, dataframe_output],
+        outputs=[gemini_analysis_output]
     )
 
 if __name__ == "__main__":
