@@ -81,7 +81,12 @@ def run_and_display_simulation(
         df
     )
 
-def get_gemini_analysis(api_key, summary_text, df):
+def get_gemini_analysis(
+    api_key, summary_text, df,
+    initial_portfolio_value, initial_cost_basis, annual_spending,
+    annual_return, annual_std_dev, margin_rate, margin_rate_std_dev,
+    margin_limit, simulation_count, tax_harvesting_profit_threshold
+):
     """
     Analyzes the simulation results using the Gemini Pro API.
     """
@@ -91,13 +96,42 @@ def get_gemini_analysis(api_key, summary_text, df):
         
         system_prompt = "You are a helpful financial analyst assistant. Your role is to provide a clear, concise, and neutral interpretation of Monte Carlo simulation results for a retirement plan. Do not give financial advice. Do not use overly optimistic or pessimistic language. Stick to interpreting the data provided. Start your analysis with a one-sentence summary of the outcome. Then, explain the key factors influencing the result. Structure your response in two paragraphs."
         
+        input_summary = f"""
+        **Initial Financial Situation:**
+        - Initial Portfolio Value: ${initial_portfolio_value:,.2f}
+        - Initial Cost Basis: ${initial_cost_basis:,.2f}
+        - Annual Spending: ${annual_spending:,.2f}
+
+        **Market and Loan Assumptions:**
+        - Portfolio Annual Average Return: {annual_return}%
+        - Portfolio Annual Standard Deviation: {annual_std_dev}%
+        - Margin Loan Annual Average Interest Rate: {margin_rate}%
+        - Margin Loan Annual Interest Rate Std. Dev.: {margin_rate_std_dev}%
+
+        **Strategy Parameters:**
+        - Brokerage Margin Limit: {margin_limit}% of portfolio value
+        - Tax Harvesting Profit Threshold: {tax_harvesting_profit_threshold}%
+        - Number of Simulations: {simulation_count}
+        """
+
+        simulation_logic = """
+        **Simulation Logic Overview:**
+        The simulation models a retirement strategy over 10 years, month by month.
+        - **Monthly Cycle:** The portfolio grows or shrinks based on random market returns. Dividends are paid quarterly and reduce the margin loan. Monthly spending is covered by borrowing on stock margin. Interest accrues on the loan. If the loan exceeds the margin limit, assets are sold to deleverage.
+        - **Annual Cycle:** At year-end, a tax-gain harvesting strategy is executed. It sells assets to realize gains up to the federal tax-free limit, then immediately repurchases them to step-up the cost basis. California state tax is calculated on the net investment income (dividends + gains - margin interest) and the tax bill is added to the margin loan balance for the new year.
+        """
+
         user_query = f"""
         Here are the results of a 10-year retirement simulation. Please provide a brief analysis.
 
-        **Summary:**
+        {input_summary}
+
+        {simulation_logic}
+
+        **Simulation Results Summary:**
         {summary_text}
 
-        **Monthly Data:**
+        **Detailed Monthly Data:**
         {df.to_string()}
         """
         
@@ -130,9 +164,9 @@ with gr.Blocks(
 ) as demo:
     gr.Markdown(
         """
-        <div style="text-align: center; font-family: 'Inter', sans-serif;">
-            <h1 style="font-size: 3rem; font-weight: 800; color: #003f5c;">The Simulation Engine</h1>
-            <p style="font-size: 1.25rem; color: #555; margin-top: 0.5rem;">A Visual Guide to How Your Retirement Future is Calculated</p>
+        <div style=\"text-align: center; font-family: 'Inter', sans-serif;">
+            <h1 style=\"font-size: 3rem; font-weight: 800; color: #003f5c;">The Simulation Engine</h1>
+            <p style=\"font-size: 1.25rem; color: #555; margin-top: 0.5rem;">A Visual Guide to How Your Retirement Future is Calculated</p>
         </div>
         """
     )
@@ -158,9 +192,9 @@ with gr.Blocks(
     with gr.Accordion("Step 2 & 3: The Monthly Cycle & Annual Reset", open=False):
         gr.Markdown(
             """
-            <div style="text-align: center; font-family: 'Inter', sans-serif;">
-                <h2 style="font-size: 2rem; font-weight: 700; color: #58508d;">2. The Monthly Cycle: The Engine's Core</h2>
-                <p style="font-size: 1.1rem; color: #555;">For 120 months, each simulation runs through a precise sequence of events. This is the heart of the model, where market chances meet your financial plan month after month.</p>
+            <div style=\"text-align: center; font-family: 'Inter', sans-serif;">
+                <h2 style=\"font-size: 2rem; font-weight: 700; color: #58508d;">2. The Monthly Cycle: The Engine's Core</h2>
+                <p style=\"font-size: 1.1rem; color: #555;">For 120 months, each simulation runs through a precise sequence of events. This is the heart of the model, where market chances meet your financial plan month after month.</p>
             </div>
             """
         )
@@ -203,9 +237,9 @@ with gr.Blocks(
                 )
         gr.Markdown(
             """
-            <div style="text-align: center; font-family: 'Inter', sans-serif; margin-top: 2rem;">
-                <h2 style="font-size: 2rem; font-weight: 700; color: #58508d;">3. The Annual Reset: Tax & Strategy</h2>
-                <p style="font-size: 1.1rem; color: #555;">At the end of each simulated year, a critical series of financial maneuvers takes place. This is where your tax strategy is executed to optimize your portfolio for the year ahead.</p>
+            <div style=\"text-align: center; font-family: 'Inter', sans-serif; margin-top: 2rem;">
+                <h2 style=\"font-size: 2rem; font-weight: 700; color: #58508d;">3. The Annual Reset: Tax & Strategy</h2>
+                <p style=\"font-size: 1.1rem; color: #555;">At the end of each simulated year, a critical series of financial maneuvers takes place. This is where your tax strategy is executed to optimize your portfolio for the year ahead.</p>
             </div>
             """
         )
@@ -236,9 +270,9 @@ with gr.Blocks(
     with gr.Group(visible=False) as results_box:
         gr.Markdown(
         """
-        <div style="text-align: center; font-family: 'Inter', sans-serif;">
-            <h2 style="font-size: 2rem; font-weight: 700; color: #58508d;">4. The Final Verdict: Your Simulated Future</h2>
-            <p style="font-size: 1.1rem; color: #555;">After running the simulations, the results below show the range of possibilities for your net worth.</p>
+        <div style=\"text-align: center; font-family: 'Inter', sans-serif;">
+            <h2 style=\"font-size: 2rem; font-weight: 700; color: #58508d;">4. The Final Verdict: Your Simulated Future</h2>
+            <p style=\"font-size: 1.1rem; color: #555;">After running the simulations, the results below show the range of possibilities for your net worth.</p>
         </div>
         """
         )
@@ -284,7 +318,12 @@ with gr.Blocks(
 
     analyze_button.click(
         fn=get_gemini_analysis,
-        inputs=[gemini_key, summary_text_output, dataframe_output],
+        inputs=[
+            gemini_key, summary_text_output, dataframe_output,
+            initial_portfolio_value, initial_cost_basis, annual_spending,
+            annual_return, annual_std_dev, margin_rate, margin_rate_std_dev,
+            margin_limit, simulation_count, tax_harvesting_profit_threshold
+        ],
         outputs=[gemini_analysis_output]
     )
 
