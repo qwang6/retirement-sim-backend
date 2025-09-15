@@ -16,6 +16,22 @@ def run_simulation(inputs):
               contains the net worth for each month of a single simulation.
     """
 
+    # --- Helper function for random number generation --- 
+    def _get_random_number(model, loc, scale, df=None):
+        if model == "Student's t":
+            # The standard_t distribution has a variance of df/(df-2) for df > 2
+            # We need to scale it to have the desired standard deviation (scale)
+            if df is None or df <= 2:
+                df = 5 # Fallback to a reasonable default
+            scaled_std = scale / np.sqrt(df / (df - 2))
+            return loc + np.random.standard_t(df) * scaled_std
+        elif model == 'Laplace':
+            # The Laplace distribution scale parameter 'b' is std/sqrt(2)
+            return np.random.laplace(loc, scale / np.sqrt(2))
+        else: # Default to Normal
+            return np.random.normal(loc, scale)
+
+
     # Extract inputs from the dictionary
     initial_portfolio_value = inputs['initial_portfolio_value']
     initial_cost_basis = inputs['initial_cost_basis']
@@ -30,6 +46,11 @@ def run_simulation(inputs):
     federal_tax_free_gain_limit = inputs['federal_tax_free_gain_limit']
     tax_harvesting_profit_threshold = inputs['tax_harvesting_profit_threshold']
     num_simulations = inputs['num_simulations']
+    # New distribution inputs
+    return_distribution_model = inputs.get('return_distribution_model', 'Normal')
+    return_distribution_df = inputs.get('return_distribution_df', 5)
+    interest_rate_distribution_model = inputs.get('interest_rate_distribution_model', 'Normal')
+    interest_rate_distribution_df = inputs.get('interest_rate_distribution_df', 5)
 
     # --- Simulation setup ---
     num_months = 120
@@ -51,9 +72,11 @@ def run_simulation(inputs):
         gains_realized_this_year = 0
         total_dividend_income_this_year = 0
 
-        current_annual_margin_rate = np.random.normal(
+        current_annual_margin_rate = _get_random_number(
+            interest_rate_distribution_model,
             margin_loan_annual_avg_interest_rate,
-            margin_loan_annual_interest_rate_std_dev
+            margin_loan_annual_interest_rate_std_dev,
+            interest_rate_distribution_df
         )
 
         monthly_net_worth = []
@@ -70,7 +93,12 @@ def run_simulation(inputs):
             long_term_basis += aging_basis
 
             # Step 2: Calculate Market Returns & Update Portfolio
-            random_monthly_return = np.random.normal(monthly_return, monthly_std_dev)
+            random_monthly_return = _get_random_number(
+                return_distribution_model,
+                monthly_return,
+                monthly_std_dev,
+                return_distribution_df
+            )
             long_term_value *= (1 + random_monthly_return)
             short_term_value *= (1 + random_monthly_return)
 
@@ -146,9 +174,11 @@ def run_simulation(inputs):
                 total_margin_interest_paid_this_year = 0
                 gains_realized_this_year = 0
                 total_dividend_income_this_year = 0
-                current_annual_margin_rate = np.random.normal(
+                current_annual_margin_rate = _get_random_number(
+                    interest_rate_distribution_model,
                     margin_loan_annual_avg_interest_rate,
-                    margin_loan_annual_interest_rate_std_dev
+                    margin_loan_annual_interest_rate_std_dev,
+                    interest_rate_distribution_df
                 )
 
             # Step 7: Record Net Worth
@@ -214,7 +244,11 @@ def main():
         'brokerage_margin_limit': 0.50,
         'federal_tax_free_gain_limit': 123250,
         'tax_harvesting_profit_threshold': 0.30,
-        'num_simulations': 1000
+        'num_simulations': 1000,
+        'return_distribution_model': 'Normal',
+        'return_distribution_df': 5,
+        'interest_rate_distribution_model': 'Normal',
+        'interest_rate_distribution_df': 5
     }
 
     results, _ = run_simulation(inputs)

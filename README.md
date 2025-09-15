@@ -7,10 +7,10 @@ This project is a Python-based Monte Carlo simulation model to assess the viabil
 The simulation models a retirement strategy where an individual with a $1M stock portfolio plans to live by borrowing on margin against it, rather than selling shares for income. The model runs thousands of scenarios over a 10-year period to assess the viability of this approach.
 
 Each simulation month includes several key financial events:
-- **Portfolio Growth:** The portfolio's value changes based on a randomized monthly return generated from user-defined average return and standard deviation.
+- **Portfolio Growth:** The portfolio's value changes based on a randomized monthly return. The model can generate these returns using a **Normal**, **Student's t**, or **Laplace** distribution to better simulate real-world market behavior.
 - **Dividend Payouts:** Every quarter, dividends are paid out and used to reduce the margin loan balance.
 - **Expense Funding:** Monthly living expenses are covered first by any passive income, with the remainder funded by increasing the margin loan.
-- **Margin Interest:** Interest accrues monthly on the margin loan balance based on a randomized annual rate.
+- **Margin Interest:** Interest accrues monthly on the margin loan balance based on a randomized annual rate, which can also be modeled using one of the three statistical distributions.
 - **Risk Management:** If the margin loan exceeds a specified percentage of the portfolio's value, a forced sale of assets occurs to bring the loan back to the limit.
 
 At the end of each year, the model executes a tax strategy involving:
@@ -18,6 +18,25 @@ At the end of each year, the model executes a tax strategy involving:
 - **State Tax Calculation:** Calculating and paying California state taxes on net investment income, with the tax bill being added to the margin loan.
 
 The final output shows the monthly range of potential net worth (maximum, average, and minimum) across all simulated scenarios, helping to quantify the risk and potential success of this strategy.
+
+## Advanced Feature: Distribution Models for Risk
+
+While standard financial models often use a Normal distribution ("bell curve") to predict returns, real-world markets don't always follow this pattern. Markets can experience extreme events (crashes or rallies) more frequently than a Normal distribution would suggest. This phenomenon is known as "fat tails" or leptokurtosis.
+
+To create a more realistic simulation, this model includes two alternative distributions:
+
+-   **Student's t-Distribution:** This model has "fatter tails" and is controlled by a **Degrees of Freedom (df)** parameter. A lower `df` value increases the probability of extreme market swings, allowing you to stress-test your strategy against more volatile scenarios.
+-   **Laplace Distribution:** Another distribution with fatter tails than the Normal distribution, providing a different model for sharp market movements.
+
+By choosing these alternative distributions in the "Advanced Settings" of the web UI, you can get a more robust understanding of the potential risks in your retirement strategy.
+
+### Visual Comparison of Distributions
+
+The images below show the simulation results using the three different distribution models. Notice how the "Min Net Worth" (the red line) dips lower in the Student's t and Laplace simulations, reflecting the higher probability of extreme negative returns.
+
+| Normal Distribution | Student's t-Distribution (df=5) | Laplace Distribution |
+| :---: | :---: | :---: |
+| ![Normal Distribution](ref/normal-distribution.png) | ![Student's t-Distribution](ref/student-t.png) | ![Laplace Distribution](ref/Laplace.png) |
 
 ## Getting Started
 
@@ -65,7 +84,7 @@ The script will output a results table to the console and display a plot visuali
 
 ## Customizing the Simulation
 
--   **Via the Web Interface**: The easiest way to customize the simulation is by running `app.py` and modifying the inputs directly in your browser.
+-   **Via the Web Interface**: The easiest way to customize the simulation is by running `app.py` and modifying the inputs directly in your browser. This includes basic financial parameters as well as advanced settings for the underlying statistical distribution models (Normal, Student's t, Laplace).
 -   **Via the Command-Line**: If you are using `simulation.py`, you can customize the run by modifying the `inputs` dictionary within the `main()` function of the script.
 
 ## Project Files

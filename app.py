@@ -7,9 +7,13 @@ import google.generativeai as genai
 
 
 def run_and_display_simulation(
+    # Core Inputs
     initial_portfolio_value, initial_cost_basis, annual_spending,
     annual_return, annual_std_dev, margin_rate, margin_rate_std_dev,
-    margin_limit, simulation_count, tax_harvesting_profit_threshold
+    margin_limit, simulation_count, tax_harvesting_profit_threshold,
+    # New Distribution Inputs
+    return_dist_model, return_dist_df,
+    interest_rate_dist_model, interest_rate_dist_df
 ):
     """
     Runs the simulation and formats the output for the Gradio interface.
@@ -27,7 +31,12 @@ def run_and_display_simulation(
         'brokerage_margin_limit': margin_limit / 100,
         'federal_tax_free_gain_limit': 123250,  # Hardcoded
         'tax_harvesting_profit_threshold': tax_harvesting_profit_threshold / 100,
-        'num_simulations': int(simulation_count)
+        'num_simulations': int(simulation_count),
+        # New distribution params
+        'return_distribution_model': return_dist_model,
+        'return_distribution_df': return_dist_df,
+        'interest_rate_distribution_model': interest_rate_dist_model,
+        'interest_rate_distribution_df': interest_rate_dist_df
     }
 
     results, _ = run_simulation(inputs)
@@ -90,10 +99,15 @@ def run_and_display_simulation(
 
 
 def get_gemini_analysis(
+    # API Key and results
     api_key, summary_text, df,
+    # Core Inputs
     initial_portfolio_value, initial_cost_basis, annual_spending,
     annual_return, annual_std_dev, margin_rate, margin_rate_std_dev,
-    margin_limit, simulation_count, tax_harvesting_profit_threshold
+    margin_limit, simulation_count, tax_harvesting_profit_threshold,
+    # Distribution Inputs
+    return_dist_model, return_dist_df,
+    interest_rate_dist_model, interest_rate_dist_df
 ):
     """
     Analyzes the simulation results using the Gemini Pro API.
@@ -125,9 +139,9 @@ def get_gemini_analysis(
         - Annual Spending: ${annual_spending:,.2f}
 
         **Market and Loan Assumptions:**
-        - Portfolio Annual Average Return: {annual_return}%
+        - Portfolio Annual Average Return: {annual_return}% (Distribution: {return_dist_model}, DF: {return_dist_df if return_dist_model == "Student's t" else 'N/A'})
         - Portfolio Annual Standard Deviation: {annual_std_dev}%
-        - Margin Loan Annual Average Interest Rate: {margin_rate}%
+        - Margin Loan Annual Average Interest Rate: {margin_rate}% (Distribution: {interest_rate_dist_model}, DF: {interest_rate_dist_df if interest_rate_dist_model == "Student's t" else 'N/A'})
         - Margin Loan Annual Interest Rate Std. Dev.: {margin_rate_std_dev}%
 
         **Strategy Parameters:**
@@ -219,6 +233,21 @@ with gr.Blocks(
         with gr.Row():
             tax_harvesting_profit_threshold = gr.Number(value=30, label="TAX HARVEST PROFIT THRESHOLD (%)",
                                                         elem_classes="input-card", info="The unrealized profit percentage that triggers tax-gain harvesting.")
+
+        with gr.Accordion("Advanced Settings: Distribution Models", open=False):
+            gr.Markdown("<p style='text-align: center; font-size: 1rem; font-family: Inter, sans-serif;'>Use these settings to model for 'fat-tail' risk, where extreme market events are more likely than a Normal distribution predicts.</p>")
+            with gr.Row():
+                with gr.Column():
+                    return_dist_model = gr.Radio(['Normal', "Student's t", 'Laplace'], label="Portfolio Return Distribution", value='Normal',
+                                                 info="Choose the probability distribution for generating random market returns.")
+                    return_dist_df = gr.Slider(minimum=2.1, maximum=30, value=5, step=0.1, label="Degrees of Freedom (for Student's t)",
+                                               info="Lower values create 'fatter tails' (more extreme events). Only used if Student's t is selected.", visible=False)
+                with gr.Column():
+                    interest_rate_dist_model = gr.Radio(['Normal', "Student's t", 'Laplace'], label="Margin Rate Distribution", value='Normal',
+                                                        info="Choose the probability distribution for generating random margin interest rates.")
+                    interest_rate_dist_df = gr.Slider(minimum=2.1, maximum=30, value=5, step=0.1, label="Degrees of Freedom (for Student's t)",
+                                                      info="Lower values create 'fatter tails'. Only used if Student's t is selected.", visible=False)
+
         run_button = gr.Button(
             "Run Simulation", variant="primary", scale=1, elem_id="run_button")
 
@@ -323,6 +352,7 @@ with gr.Blocks(
             analyze_button = gr.Button("Analyze Results")
             gemini_analysis_output = gr.Markdown()
 
+    # --- Event Handlers ---
     def update_summary_style(summary_title):
         if "Survived" in summary_title:
             return gr.update(elem_classes="summary-card summary-survived")
@@ -330,12 +360,21 @@ with gr.Blocks(
             return gr.update(elem_classes="summary-card summary-failed")
         return gr.update()
 
+    def toggle_df_slider(dist_model):
+        return gr.update(visible=dist_model == "Student's t")
+
+    return_dist_model.change(toggle_df_slider, inputs=return_dist_model, outputs=return_dist_df)
+    interest_rate_dist_model.change(toggle_df_slider, inputs=interest_rate_dist_model, outputs=interest_rate_dist_df)
+
+    # Main simulation button
     run_button.click(
         fn=run_and_display_simulation,
         inputs=[
             initial_portfolio_value, initial_cost_basis, annual_spending,
             annual_return, annual_std_dev, margin_rate, margin_rate_std_dev,
-            margin_limit, simulation_count, tax_harvesting_profit_threshold
+            margin_limit, simulation_count, tax_harvesting_profit_threshold,
+            return_dist_model, return_dist_df,
+            interest_rate_dist_model, interest_rate_dist_df
         ],
         outputs=[
             results_box,
@@ -353,13 +392,16 @@ with gr.Blocks(
         outputs=summary_card
     )
 
+    # Gemini analysis button
     analyze_button.click(
         fn=get_gemini_analysis,
         inputs=[
             gemini_key, summary_text_output, dataframe_output,
             initial_portfolio_value, initial_cost_basis, annual_spending,
             annual_return, annual_std_dev, margin_rate, margin_rate_std_dev,
-            margin_limit, simulation_count, tax_harvesting_profit_threshold
+            margin_limit, simulation_count, tax_harvesting_profit_threshold,
+            return_dist_model, return_dist_df,
+            interest_rate_dist_model, interest_rate_dist_df
         ],
         outputs=[gemini_analysis_output],
         show_progress='full'
