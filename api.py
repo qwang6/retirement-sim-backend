@@ -13,6 +13,15 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Health check endpoint
+@app.get("/")
+async def health_check():
+    return {"status": "healthy", "message": "Retirement Simulator API is running"}
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 # --- Pydantic Data Models ---
 
 class SimulationInput(BaseModel):
