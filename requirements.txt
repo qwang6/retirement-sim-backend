@@ -3,3 +3,6 @@ matplotlib
 gradio
 pandas
 google-generativeai
+fastapi
+uvicorn[standard]
+pydantic
